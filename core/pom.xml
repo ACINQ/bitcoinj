@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.bitcoinj</groupId>
         <artifactId>bitcoinj-parent</artifactId>
-        <version>0.15-ACINQ-rc4</version>
+        <version>0.15-ACINQ-SNAPSHOT</version>
     </parent>
 
     <artifactId>bitcoinj-core</artifactId>
