@@ -21,7 +21,7 @@
 
   <groupId>org.bitcoinj</groupId>
   <artifactId>bitcoinj-parent</artifactId>
-  <version>0.15-ACINQ-SNAPSHOT</version>
+  <version>0.15-ACINQ-rc6</version>
   <packaging>pom</packaging>
 
   <modules>
