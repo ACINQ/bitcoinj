@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.bitcoinj.core.Utils.*;
 import com.google.common.base.Objects;
@@ -181,7 +182,7 @@ public class PartialMerkleTree extends Message {
     
     // recursive function that traverses tree nodes, consuming the bits and hashes produced by TraverseAndBuild.
     // it returns the hash of the respective node.
-    private Sha256Hash recursiveExtractHashes(int height, int pos, ValuesUsed used, List<Sha256Hash> matchedHashes) throws VerificationException {
+    private Sha256Hash recursiveExtractHashes(int height, int pos, ValuesUsed used, Map<Sha256Hash, Integer> matchedHashes) throws VerificationException {
         if (used.bitsUsed >= matchedChildBits.length*8) {
             // overflowed the bits array - failure
             throw new VerificationException("PartialMerkleTree overflowed its bits array");
@@ -195,7 +196,7 @@ public class PartialMerkleTree extends Message {
             }
             Sha256Hash hash = hashes.get(used.hashesUsed++);
             if (height == 0 && parentOfMatch) // in case of height 0, we have a matched txid
-                matchedHashes.add(hash);
+                matchedHashes.put(hash, pos);
             return hash;
         } else {
             // otherwise, descend into the subtrees to extract matched txids and hashes
@@ -229,7 +230,7 @@ public class PartialMerkleTree extends Message {
      * @return the merkle root of this merkle tree
      * @throws ProtocolException if this partial merkle tree is invalid
      */
-    public Sha256Hash getTxnHashAndMerkleRoot(List<Sha256Hash> matchedHashesOut) throws VerificationException {
+    public Sha256Hash getTxnHashAndMerkleRoot(Map<Sha256Hash, Integer> matchedHashesOut) throws VerificationException {
         matchedHashesOut.clear();
         
         // An empty set will not work

@@ -121,7 +121,7 @@ public class FilteredBlockAndPartialMerkleTreeTests extends TestWithPeerGroup {
         Utils.setBitLE(includeBits, 9);
         Utils.setBitLE(includeBits, 10);
         PartialMerkleTree pmt = PartialMerkleTree.buildFromLeaves(PARAMS, includeBits, hashes);
-        List<Sha256Hash> matchedHashes = Lists.newArrayList();
+        Map<Sha256Hash, Integer> matchedHashes = Maps.newHashMap();
         pmt.getTxnHashAndMerkleRoot(matchedHashes);
     }
 

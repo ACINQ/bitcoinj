@@ -18,6 +18,8 @@
 package org.bitcoinj.core;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.Lists;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -32,7 +34,7 @@ public class FilteredBlock extends Message {
     private Block header;
 
     private PartialMerkleTree merkleTree;
-    private List<Sha256Hash> cachedTransactionHashes = null;
+    private Map<Sha256Hash, Integer> cachedTransactionHashes = null;
     
     // A set of transactions whose hashes are a subset of getTransactionHashes()
     // These were relayed as a part of the filteredblock getdata, ie likely weren't previously received as loose transactions
@@ -73,17 +75,21 @@ public class FilteredBlock extends Message {
      * 
      * @throws ProtocolException If the partial merkle block is invalid or the merkle root of the partial merkle block doesnt match the block header
      */
-    public List<Sha256Hash> getTransactionHashes() throws VerificationException {
+    public Map<Sha256Hash, Integer> getTransactionHashesAndIndexes() throws VerificationException {
         if (cachedTransactionHashes != null)
-            return Collections.unmodifiableList(cachedTransactionHashes);
-        List<Sha256Hash> hashesMatched = new LinkedList<>();
+            return Collections.unmodifiableMap(cachedTransactionHashes);
+        Map<Sha256Hash, Integer> hashesMatched = new HashMap<Sha256Hash, Integer>();
         if (header.getMerkleRoot().equals(merkleTree.getTxnHashAndMerkleRoot(hashesMatched))) {
             cachedTransactionHashes = hashesMatched;
-            return Collections.unmodifiableList(cachedTransactionHashes);
+            return Collections.unmodifiableMap(cachedTransactionHashes);
         } else
             throw new VerificationException("Merkle root of block header does not match merkle root of partial merkle tree.");
     }
-    
+
+    public List<Sha256Hash> getTransactionHashes() throws VerificationException {
+        return Collections.unmodifiableList(Lists.newArrayList(getTransactionHashesAndIndexes().keySet()));
+    }
+
     /**
      * Gets a copy of the block header
      */
