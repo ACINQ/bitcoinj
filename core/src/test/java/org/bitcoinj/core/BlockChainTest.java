@@ -323,6 +323,9 @@ public class BlockChainTest {
         Block b1 = PARAMS.getGenesisBlock().createNextBlockWithCoinbase(Block.BLOCK_VERSION_GENESIS, wallet.currentReceiveKey().getPubKey(), height++);
         chain.add(b1);
 
+        // shadowing on purpose so that is is not changed since now every tx is relevant
+        Transaction coinbaseTransaction = this.coinbaseTransaction;
+
         // Check a transaction has been received.
         assertNotNull(coinbaseTransaction);
 
@@ -362,6 +365,7 @@ public class BlockChainTest {
             }
         }
 
+        coinbaseTransaction.getConfidence();
         // Give it one more block - should now be able to spend coinbase transaction. Non relevant tx.
         Transaction tx3 = createFakeTx(PARAMS, COIN, new ECKey().toAddress(PARAMS));
         Block b3 = createFakeBlock(blockStore, height++, tx3).block;

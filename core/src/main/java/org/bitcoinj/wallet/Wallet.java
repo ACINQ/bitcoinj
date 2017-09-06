@@ -1756,14 +1756,15 @@ public class Wallet extends BaseTaggableObject
     public boolean isTransactionRisky(Transaction tx, @Nullable List<Transaction> dependencies) {
         lock.lock();
         try {
-            /*if (dependencies == null)
+            if (useSegwit()) return false;
+            if (dependencies == null)
                 dependencies = ImmutableList.of();
             RiskAnalysis analysis = riskAnalyzer.create(this, tx, dependencies);
             RiskAnalysis.Result result = analysis.analyze();
             if (result != RiskAnalysis.Result.OK) {
                 log.warn("Pending transaction was considered risky: {}\n{}", analysis, tx);
                 return true;
-            }*/
+            }
             return false;
         } finally {
             lock.unlock();
@@ -1826,10 +1827,11 @@ public class Wallet extends BaseTaggableObject
     public boolean isTransactionRelevant(Transaction tx) throws ScriptException {
         lock.lock();
         try {
-            return true;
-            /*return tx.getValueSentFromMe(this).signum() > 0 ||
+            if (useSegwit())
+                return true;
+            return tx.getValueSentFromMe(this).signum() > 0 ||
                    tx.getValueSentToMe(this).signum() > 0 ||
-                   !findDoubleSpendsAgainst(tx, transactions).isEmpty();*/
+                   !findDoubleSpendsAgainst(tx, transactions).isEmpty();
         } finally {
             lock.unlock();
         }
