@@ -1756,14 +1756,14 @@ public class Wallet extends BaseTaggableObject
     public boolean isTransactionRisky(Transaction tx, @Nullable List<Transaction> dependencies) {
         lock.lock();
         try {
-            if (dependencies == null)
+            /*if (dependencies == null)
                 dependencies = ImmutableList.of();
             RiskAnalysis analysis = riskAnalyzer.create(this, tx, dependencies);
             RiskAnalysis.Result result = analysis.analyze();
             if (result != RiskAnalysis.Result.OK) {
                 log.warn("Pending transaction was considered risky: {}\n{}", analysis, tx);
                 return true;
-            }
+            }*/
             return false;
         } finally {
             lock.unlock();
@@ -1826,9 +1826,10 @@ public class Wallet extends BaseTaggableObject
     public boolean isTransactionRelevant(Transaction tx) throws ScriptException {
         lock.lock();
         try {
-            return tx.getValueSentFromMe(this).signum() > 0 ||
+            return true;
+            /*return tx.getValueSentFromMe(this).signum() > 0 ||
                    tx.getValueSentToMe(this).signum() > 0 ||
-                   !findDoubleSpendsAgainst(tx, transactions).isEmpty();
+                   !findDoubleSpendsAgainst(tx, transactions).isEmpty();*/
         } finally {
             lock.unlock();
         }
@@ -2324,7 +2325,8 @@ public class Wallet extends BaseTaggableObject
                 maybeMovePool(connected, "prevtx");
                 // Just because it's connected doesn't mean it's actually ours: sometimes we have total visibility.
                 if (output.isMineOrWatched(this)) {
-                    checkState(myUnspents.remove(output));
+                    myUnspents.remove(output);
+                    //checkState(myUnspents.remove(output));
                 }
             }
         }
