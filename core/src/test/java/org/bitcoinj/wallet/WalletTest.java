@@ -270,10 +270,10 @@ public class WalletTest extends TestWithWallet {
 
         wallet.cleanup();
         assertTrue(wallet.isConsistent());
-        assertEquals("Wrong number of PENDING", useSegwit ? 2 : 1, wallet.getPoolSize(WalletTransaction.Pool.PENDING));
+        assertEquals("Wrong number of PENDING", 1, wallet.getPoolSize(WalletTransaction.Pool.PENDING));
         assertEquals("Wrong number of UNSPENT", 0, wallet.getPoolSize(WalletTransaction.Pool.UNSPENT));
-        assertEquals("Wrong number of ALL", useSegwit ? 3 : 2, wallet.getTransactions(true).size());
-        assertEquals(valueOf(0, useSegwit ? 60  : 50), wallet.getBalance(Wallet.BalanceType.ESTIMATED));
+        assertEquals("Wrong number of ALL", 2, wallet.getTransactions(true).size());
+        assertEquals(valueOf(0, 50), wallet.getBalance(Wallet.BalanceType.ESTIMATED));
     }
 
     @Test
@@ -1384,7 +1384,7 @@ public class WalletTest extends TestWithWallet {
             wallet.receivePending(irrelevant, null);
         Threading.waitForUserCode();
         assertFalse(flags[0]);
-        assertEquals(useSegwit ? 4 : 3, walletChanged[0]);
+        assertEquals(3, walletChanged[0]);
     }
 
     @Test
@@ -1855,11 +1855,9 @@ public class WalletTest extends TestWithWallet {
 
         // A block that contains some random tx we don't care about.
         sendMoneyToWallet(BlockChain.NewBlockType.BEST_CHAIN, Coin.COIN, OTHER_ADDRESS);
-        if (!useSegwit) {
-            assertEquals(hash4, Sha256Hash.of(f));  // File has NOT changed.
-            assertNull(results[0]);
-            assertNull(results[1]);
-        }
+        assertEquals(hash4, Sha256Hash.of(f));  // File has NOT changed.
+        assertNull(results[0]);
+        assertNull(results[1]);
 
         // Wait for an auto-save to occur.
         latch.await();
@@ -3240,10 +3238,8 @@ public class WalletTest extends TestWithWallet {
         assertEquals(Coin.ZERO, wallet.getBalance(Wallet.BalanceType.ESTIMATED));
         wallet.receivePending(tx, null);
         assertEquals(Coin.ZERO, wallet.getBalance());
-        if (!useSegwit) {
-            assertEquals(Coin.ZERO, wallet.getBalance(Wallet.BalanceType.ESTIMATED));
-            assertTrue(bool.get());
-        }
+        assertEquals(Coin.ZERO, wallet.getBalance(Wallet.BalanceType.ESTIMATED));
+        assertTrue(bool.get());
         // Confirm it in the same manner as how Bloom filtered blocks do. Verify it shows up.
         sendMoneyToWallet(AbstractBlockChain.NewBlockType.BEST_CHAIN, tx);
         assertEquals(COIN, wallet.getBalance());
@@ -3261,7 +3257,7 @@ public class WalletTest extends TestWithWallet {
         wallet.receivePending(tx2, null);
         StoredBlock block2 = createFakeBlock(blockStore, Block.BLOCK_HEIGHT_GENESIS + 1, tx2).storedBlock;
         boolean notification2 = wallet.notifyTransactionIsInBlock(tx2.getHash(), block2, AbstractBlockChain.NewBlockType.BEST_CHAIN, 1);
-        if (!useSegwit) assertFalse(notification2);
+        assertFalse(notification2);
     }
 
     @Test

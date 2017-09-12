@@ -248,6 +248,8 @@ public class Wallet extends BaseTaggableObject
     // If this is set then the wallet selects spendable candidate outputs from a UTXO provider.
     @Nullable private volatile UTXOProvider vUTXOProvider;
 
+    public boolean watchMode = false;
+
     /**
      * Creates a new, empty wallet with a randomly chosen seed and no transactions. Make sure to provide for sufficient
      * backup! Any keys will be derived from the seed. If you want to restore a wallet from disk instead, see
@@ -1756,7 +1758,7 @@ public class Wallet extends BaseTaggableObject
     public boolean isTransactionRisky(Transaction tx, @Nullable List<Transaction> dependencies) {
         lock.lock();
         try {
-            if (useSegwit()) return false;
+            if (watchMode && useSegwit()) return false;
             if (dependencies == null)
                 dependencies = ImmutableList.of();
             RiskAnalysis analysis = riskAnalyzer.create(this, tx, dependencies);
@@ -1827,7 +1829,7 @@ public class Wallet extends BaseTaggableObject
     public boolean isTransactionRelevant(Transaction tx) throws ScriptException {
         lock.lock();
         try {
-            if (useSegwit())
+            if (watchMode && useSegwit())
                 return true;
             return tx.getValueSentFromMe(this).signum() > 0 ||
                    tx.getValueSentToMe(this).signum() > 0 ||
