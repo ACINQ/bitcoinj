@@ -34,8 +34,9 @@ public class FilteredBlock extends Message {
     private Block header;
 
     private PartialMerkleTree merkleTree;
-    private Map<Sha256Hash, Integer> cachedTransactionHashes = null;
-    
+    private List<Sha256Hash> cachedTransactionHashes = null;
+    private List<Integer> cachedTransactionPositions = null;
+
     // A set of transactions whose hashes are a subset of getTransactionHashes()
     // These were relayed as a part of the filteredblock getdata, ie likely weren't previously received as loose transactions
     private Map<Sha256Hash, Transaction> associatedTransactions = new HashMap<>();
@@ -69,25 +70,42 @@ public class FilteredBlock extends Message {
         
         length = Block.HEADER_SIZE + merkleTree.getMessageSize();
     }
-    
+
+    /**
+     * Gets a list of leaf hashes which are contained in the partial merkle tree in this filtered block
+     *
+     * @throws ProtocolException If the partial merkle block is invalid or the merkle root of the partial merkle block doesnt match the block header
+     */
+    public List<Sha256Hash> getTransactionHashes() throws VerificationException {
+        if (cachedTransactionHashes != null)
+            return Collections.unmodifiableList(cachedTransactionHashes);
+        List<Sha256Hash> hashesMatched = new LinkedList<>();
+        List<Integer> positions = new LinkedList<>();
+        if (header.getMerkleRoot().equals(merkleTree.getTxnHashAndMerkleRoot(hashesMatched, positions))) {
+            cachedTransactionHashes = hashesMatched;
+            cachedTransactionPositions = positions;
+            return Collections.unmodifiableList(cachedTransactionHashes);
+        } else
+            throw new VerificationException("Merkle root of block header does not match merkle root of partial merkle tree.");
+    }
+
     /**
      * Gets a list of leaf hashes which are contained in the partial merkle tree in this filtered block
      * 
      * @throws ProtocolException If the partial merkle block is invalid or the merkle root of the partial merkle block doesnt match the block header
      */
-    public Map<Sha256Hash, Integer> getTransactionHashesAndIndexes() throws VerificationException {
-        if (cachedTransactionHashes != null)
-            return Collections.unmodifiableMap(cachedTransactionHashes);
-        Map<Sha256Hash, Integer> hashesMatched = new HashMap<Sha256Hash, Integer>();
-        if (header.getMerkleRoot().equals(merkleTree.getTxnHashAndMerkleRoot(hashesMatched))) {
+    public AbstractMap.SimpleEntry<List<Sha256Hash>, List<Integer>> getTransactionHashesAndIndexes() throws VerificationException {
+        if (cachedTransactionHashes != null && cachedTransactionPositions != null)
+            return new AbstractMap.SimpleEntry<List<Sha256Hash>, List<Integer>>(Collections.unmodifiableList(cachedTransactionHashes), Collections.unmodifiableList(cachedTransactionPositions));
+
+        List<Sha256Hash> hashesMatched = new LinkedList<>();
+        List<Integer> positions = new LinkedList<>();
+        if (header.getMerkleRoot().equals(merkleTree.getTxnHashAndMerkleRoot(hashesMatched, positions))) {
             cachedTransactionHashes = hashesMatched;
-            return Collections.unmodifiableMap(cachedTransactionHashes);
+            cachedTransactionPositions = positions;
+            return new AbstractMap.SimpleEntry<>(Collections.unmodifiableList(cachedTransactionHashes), Collections.unmodifiableList(cachedTransactionPositions));
         } else
             throw new VerificationException("Merkle root of block header does not match merkle root of partial merkle tree.");
-    }
-
-    public List<Sha256Hash> getTransactionHashes() throws VerificationException {
-        return Collections.unmodifiableList(Lists.newArrayList(getTransactionHashesAndIndexes().keySet()));
     }
 
     /**

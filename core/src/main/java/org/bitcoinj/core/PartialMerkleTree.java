@@ -53,7 +53,7 @@ import com.google.common.base.Objects;
  *  - varint     number of bytes of flag bits (1-3 bytes)
  *  - byte[]     flag bits, packed per 8 in a byte, least significant bit first (&lt;= 2*N-1 bits)
  * The size constraints follow from this.</pre></p>
- * 
+ *
  * <p>Instances of this class are not safe for use by multiple threads.</p>
  */
 public class PartialMerkleTree extends Message {
@@ -65,7 +65,7 @@ public class PartialMerkleTree extends Message {
 
     // txids and internal hashes
     private List<Sha256Hash> hashes;
-    
+
     public PartialMerkleTree(NetworkParameters params, byte[] payloadBytes, int offset) throws ProtocolException {
         super(params, payloadBytes, offset);
     }
@@ -175,14 +175,14 @@ public class PartialMerkleTree extends Message {
     private static int getTreeWidth(int transactionCount, int height) {
         return (transactionCount + (1 << height) - 1) >> height;
     }
-    
+
     private static class ValuesUsed {
         public int bitsUsed = 0, hashesUsed = 0;
     }
-    
+
     // recursive function that traverses tree nodes, consuming the bits and hashes produced by TraverseAndBuild.
     // it returns the hash of the respective node.
-    private Sha256Hash recursiveExtractHashes(int height, int pos, ValuesUsed used, Map<Sha256Hash, Integer> matchedHashes) throws VerificationException {
+    private Sha256Hash recursiveExtractHashes(int height, int pos, ValuesUsed used, List<Sha256Hash> matchedHashes, List<Integer> matchedPositions) throws VerificationException {
         if (used.bitsUsed >= matchedChildBits.length*8) {
             // overflowed the bits array - failure
             throw new VerificationException("PartialMerkleTree overflowed its bits array");
@@ -195,14 +195,16 @@ public class PartialMerkleTree extends Message {
                 throw new VerificationException("PartialMerkleTree overflowed its hash array");
             }
             Sha256Hash hash = hashes.get(used.hashesUsed++);
-            if (height == 0 && parentOfMatch) // in case of height 0, we have a matched txid
-                matchedHashes.put(hash, pos);
+            if (height == 0 && parentOfMatch) { // in case of height 0, we have a matched txid
+                matchedHashes.add(hash);
+                matchedPositions.add(pos);
+            }
             return hash;
         } else {
             // otherwise, descend into the subtrees to extract matched txids and hashes
-            byte[] left = recursiveExtractHashes(height - 1, pos * 2, used, matchedHashes).getBytes(), right;
+            byte[] left = recursiveExtractHashes(height - 1, pos * 2, used, matchedHashes, matchedPositions).getBytes(), right;
             if (pos * 2 + 1 < getTreeWidth(transactionCount, height-1)) {
-                right = recursiveExtractHashes(height - 1, pos * 2 + 1, used, matchedHashes).getBytes();
+                right = recursiveExtractHashes(height - 1, pos * 2 + 1, used, matchedHashes, matchedPositions).getBytes();
                 if (Arrays.equals(right, left))
                     throw new VerificationException("Invalid merkle tree with duplicated left/right branches");
             } else {
@@ -222,17 +224,17 @@ public class PartialMerkleTree extends Message {
     /**
      * Extracts tx hashes that are in this merkle tree
      * and returns the merkle root of this tree.
-     * 
+     *
      * The returned root should be checked against the
      * merkle root contained in the block header for security.
-     * 
+     *
      * @param matchedHashesOut A list which will contain the matched txn (will be cleared).
      * @return the merkle root of this merkle tree
      * @throws ProtocolException if this partial merkle tree is invalid
      */
-    public Sha256Hash getTxnHashAndMerkleRoot(Map<Sha256Hash, Integer> matchedHashesOut) throws VerificationException {
+    public Sha256Hash getTxnHashAndMerkleRoot(List<Sha256Hash> matchedHashesOut, List<Integer> matchedPositionsOut) throws VerificationException {
         matchedHashesOut.clear();
-        
+
         // An empty set will not work
         if (transactionCount == 0)
             throw new VerificationException("Got a CPartialMerkleTree with 0 transactions");
@@ -251,13 +253,13 @@ public class PartialMerkleTree extends Message {
             height++;
         // traverse the partial tree
         ValuesUsed used = new ValuesUsed();
-        Sha256Hash merkleRoot = recursiveExtractHashes(height, 0, used, matchedHashesOut);
+        Sha256Hash merkleRoot = recursiveExtractHashes(height, 0, used, matchedHashesOut, matchedPositionsOut);
         // verify that all bits were consumed (except for the padding caused by serializing it as a byte sequence)
         if ((used.bitsUsed+7)/8 != matchedChildBits.length ||
                 // verify that all hashes were consumed
                 used.hashesUsed != hashes.size())
             throw new VerificationException("Got a CPartialMerkleTree that didn't need all the data it provided");
-        
+
         return merkleRoot;
     }
 
